@@ -140,6 +140,14 @@ app.post("/register", async (req, res) => {
   }
 });
 
+// LIST PENDING EMPLOYEES
+app.get("/admin/pending", async (req, res) => {
+  const result = await pool.query(
+    "SELECT id, email FROM users WHERE role='employee' AND approved=false"
+  );
+  res.json(result.rows);
+});
+
 
 // APPROVE EMPLOYEE
 app.post("/admin/approve", async (req, res) => {
