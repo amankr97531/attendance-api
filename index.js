@@ -161,6 +161,39 @@ app.post("/admin/approve", async (req, res) => {
   res.json({ message: "Employee approved" });
 });
 
+// GET APPROVED EMPLOYEES (ADMIN)
+app.get("/admin/employees", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.id, e.name, u.email
+       FROM employees e
+       JOIN users u ON e.user_id = u.id
+       WHERE u.approved = true`
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ATTENDANCE REPORT
+app.get("/admin/reports", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.name, a.attendance_date, a.in_time, a.out_time, a.working_hours
+       FROM attendance a
+       JOIN employees e ON a.employee_id = e.id
+       ORDER BY a.attendance_date DESC`
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 
 
