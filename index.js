@@ -28,9 +28,13 @@ app.post("/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, email, role, approved FROM users WHERE email=$1 AND password=$2",
-      [email, password]
-    );
+  `SELECT u.id as user_id, u.email, u.role, u.approved, e.id as employee_id
+   FROM users u
+   LEFT JOIN employees e ON u.id = e.user_id
+   WHERE u.email=$1 AND u.password=$2`,
+  [email, password]
+);
+
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -117,9 +121,16 @@ app.post("/register", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    await pool.query(
-      "INSERT INTO users (email, password, role, approved) VALUES ($1,$2,'employee',false)",
+    const userResult = await pool.query(
+      "INSERT INTO users (email, password, role, approved) VALUES ($1,$2,'employee',false) RETURNING id",
       [email, password]
+    );
+
+    const userId = userResult.rows[0].id;
+
+    await pool.query(
+      "INSERT INTO employees (user_id) VALUES ($1)",
+      [userId]
     );
 
     res.json({ message: "Registration successful. Wait for admin approval." });
