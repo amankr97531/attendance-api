@@ -118,7 +118,7 @@ app.post("/attendance/out", async (req, res) => {
 
 // EMPLOYEE REGISTER
 app.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     const userResult = await pool.query(
@@ -129,23 +129,17 @@ app.post("/register", async (req, res) => {
     const userId = userResult.rows[0].id;
 
     await pool.query(
-      "INSERT INTO employees (user_id) VALUES ($1)",
-      [userId]
+      "INSERT INTO employees (user_id, name) VALUES ($1,$2)",
+      [userId, name]
     );
 
     res.json({ message: "Registration successful. Wait for admin approval." });
   } catch (err) {
+    console.error("REGISTER ERROR:", err); // 👈 IMPORTANT
     res.status(500).json({ error: err.message });
   }
 });
 
-// LIST PENDING EMPLOYEES
-app.get("/admin/pending", async (req, res) => {
-  const result = await pool.query(
-    "SELECT id, email FROM users WHERE role='employee' AND approved=false"
-  );
-  res.json(result.rows);
-});
 
 // APPROVE EMPLOYEE
 app.post("/admin/approve", async (req, res) => {
