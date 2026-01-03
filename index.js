@@ -26,13 +26,9 @@ app.get("/", (req, res) => {
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email & password required" });
-  }
-
   try {
     const result = await pool.query(
-      "SELECT id, email, role FROM users WHERE email=$1 AND password=$2",
+      "SELECT id, email, role, approved FROM users WHERE email=$1 AND password=$2",
       [email, password]
     );
 
@@ -40,14 +36,18 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    res.json({
-      message: "Login successful",
-      user: result.rows[0]
-    });
+    const user = result.rows[0];
+
+    if (user.role === "employee" && user.approved === false) {
+      return res.status(403).json({ message: "Admin approval pending" });
+    }
+
+    res.json({ message: "Login successful", user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Attendance In API
 app.post("/attendance/in", async (req, res) => {
@@ -111,6 +111,44 @@ app.post("/attendance/out", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// EMPLOYEE REGISTER
+app.post("/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    await pool.query(
+      "INSERT INTO users (email, password, role, approved) VALUES ($1,$2,'employee',false)",
+      [email, password]
+    );
+
+    res.json({ message: "Registration successful. Wait for admin approval." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// LIST PENDING EMPLOYEES
+app.get("/admin/pending", async (req, res) => {
+  const result = await pool.query(
+    "SELECT id, email FROM users WHERE role='employee' AND approved=false"
+  );
+  res.json(result.rows);
+});
+
+// APPROVE EMPLOYEE
+app.post("/admin/approve", async (req, res) => {
+  const { user_id } = req.body;
+
+  await pool.query(
+    "UPDATE users SET approved=true WHERE id=$1",
+    [user_id]
+  );
+
+  res.json({ message: "Employee approved" });
+});
+
+
 
 
 
